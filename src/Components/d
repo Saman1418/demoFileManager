@@ -1,0 +1,68 @@
+import React, { useState, useEffect } from "react";
+// import ProgressBar from './ProgressBar';
+import firebase from "../Firebase/FirebaseConfig";
+const storage = firebase.storage();
+const auth = firebase.auth();
+const projectFireStore = firebase.firestore();
+const timestamp = firebase.firestore.FieldValue.serverTimestamp;
+
+const DisplayMedia = ({ token }) => {
+  const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
+  const [progress, setProgress] = useState(0);
+  //   const [docs, setDocs] = useState([]);
+  //   const [userUID, setUserUID] = useState("");
+
+  const handleChange = (e) => {
+    if (e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  console.log("url", url);
+
+  const handleUpload = () => {
+    const uploadTask = storage.ref(`files/${file.name}`).put(file);
+    const collectionRef = projectFireStore.collection("files");
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setProgress(progress);
+      },
+      (error) => {
+        console.log(error);
+      },
+      () => {
+        storage
+          .ref("files")
+          .child(file.name)
+          .getDownloadURL()
+          .then((url) => {
+            setUrl(url);
+
+            // {In this place you have to call that api of add files}
+            collectionRef.add({ uid: userUID, url, createdAt });
+          });
+      }
+    );
+  };
+
+  return (
+    <>
+      <div>
+        <div className="d-flex justify-content-center align-items-center">
+          <progress value={progress} max="100" />
+          <input type="file" onChange={handleChange} />
+          <button className="btn btn-success" onClick={handleUpload}>
+            Upload
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default DisplayMedia;
